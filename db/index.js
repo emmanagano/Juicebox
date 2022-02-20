@@ -18,7 +18,8 @@ async function createUser({
     username,
     password,
     name, 
-    location 
+    location
+     
 }) {
     try {
         const { rows: [user] } = await client.query (`
@@ -198,16 +199,22 @@ async function getPostsByUser( userId ) {
 
 async function createTags( tagList ) {
 
-    if(tagList.length === 0){
+    if(tagList.length === 0) {
+
         return;
+
     };
 
     const insertValues = tagList.map(
+
         (_,index) => `$${index + 1}`
+
     ).join('), (');
 
     const selectValues = tagList.map(
+
         (_,index) => `$${index + 1}`
+
     ).join(', ');
 
     try {
@@ -237,7 +244,7 @@ async function createTags( tagList ) {
 }
 
 async function createPostTag( postId, tagId ) {
-    try{
+    try {
         await client.query (`
 
             INSERT INTO post_tags("postId", "tagId")
@@ -317,6 +324,7 @@ async function getPostById( postId ) {
 }
 
 module.exports = {
+
     client,
     createUser,
     updateUser,
