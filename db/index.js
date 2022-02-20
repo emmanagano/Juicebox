@@ -19,7 +19,7 @@ async function createUser({
     password,
     name, 
     location
-     
+
 }) {
     try {
         const { rows: [user] } = await client.query (`
@@ -110,7 +110,8 @@ async function getUserById( userId ) {
 async function createPost({
     authorId,
     title, 
-    content
+    content,
+    tags = []
 
 }) {
 
@@ -125,7 +126,9 @@ async function createPost({
         `,[authorId, title, content]
         );
 
-        return post; 
+        const tagList = await createTags(tags);
+        
+        return await addTagsToPost(post.id, tagList);
 
     } catch( error ) {
 
@@ -134,43 +137,82 @@ async function createPost({
     }
 }
 
-async function updatePost( id, fields = {} ) {
+async function updatePost( postId, fields = {} ) {
+
+    const { tags } = fields;
+
+    delete fields.tags;
 
     const setString = Object.keys(fields).map(
 
         (key, index) => `"${key}" = $${index + 1}`
 
     ).join(', ');
+    
+    try {
+        if(setString.length > 0) { await client.query (`
 
-    if(setString.length === 0) {
+            UPDATE posts 
+            SET ${setString}
+            WHERE id = ${postId}
+            RETURNING *;
 
-        return;
-    };
+        `, Object.values(fields)
+        );}
 
-    const { rows: [post] } = await client.query (`
+        if(tags === undefined) {
 
-        UPDATE posts 
-        SET ${setString}
-        WHERE id = ${id}
-        RETURNING *;
+            return await getPostById(postId);
+        }
 
-    `, Object.values(fields)
-    );
+        const tagList = await createTags(tags);
 
-    return post;
+        const tagListIdString = tagList.map (
+            
+            tag => `${tag.id}`
+        ).join(', ');
+
+        await client.query (`
+            
+            DELETE FROM post_tags
+            WHERE "tagId"
+            NOT IN (${tagListIdString})
+            AND "postId"=$1
+
+        `, [postId]
+        );
+
+        await addTagsToPost(postId, tagList);
+
+        return await getPostById(postId);
+
+    } catch( error ) {
+
+        throw error;
+
+    }
+
+
+    
 }
 
 async function getAllPosts() {
 
     try {
 
-        const { rows } = await client.query (`
+        const { rows: postIds } = await client.query (`
 
-            SELECT * FROM posts;
+            SELECT * 
+            FROM posts;
 
         `);
 
-        return rows;
+        const posts = await Promise.all(postIds.map(
+            
+            post => getPostById(post.id)
+        ));
+
+        return posts;
 
     } catch( error ) {
 
@@ -182,14 +224,21 @@ async function getPostsByUser( userId ) {
 
     try {
 
-        const { rows } = await client.query (`
+        const { rows: postIds } = await client.query (`
 
-            SELECT * FROM posts
+            SELECT * 
+            FROM posts
             WHERE "authorId" = ${userId};
 
         `);
 
-        return rows;
+        const posts = await Promise.all(postIds.map (
+
+            post => getPostById(post.id)
+
+        ));
+
+        return posts;
 
     } catch( error ){
 
@@ -230,7 +279,7 @@ async function createTags( tagList ) {
         const { rows } = await client.query (`
 
             SELECT * FROM tags
-            WHERE name IN (${selectValues})
+            WHERE name IN (${selectValues});
 
         `,tagList);
 
@@ -323,6 +372,37 @@ async function getPostById( postId ) {
     }
 }
 
+async function getPostsByTagName( tagName ) {
+
+    try {
+
+        const { rows: postIds } = await client.query (`
+
+            SELECT posts.id
+            FROM posts
+            JOIN post_tags on posts.id=post_tags."postId"
+            JOIN tags ON tags.id=post_tags."tagId"
+            WHERE tags.name=$1;
+
+        `,[tagName]
+        );
+
+        return await Promise.all(postIds.map (
+
+            post => getPostById(post.id)
+
+        ));
+
+    } catch( error ) {
+
+        throw error;
+
+    }
+}
+
+
+
+
 module.exports = {
 
     client,
@@ -337,6 +417,7 @@ module.exports = {
     createTags,
     createPostTag,
     addTagsToPost,
-    getPostById
+    getPostById,
+    getPostsByTagName
 
 }
