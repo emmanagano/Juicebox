@@ -170,6 +170,7 @@ async function updatePost( postId, fields = {} ) {
         const tagListIdString = tagList.map (
             
             tag => `${tag.id}`
+
         ).join(', ');
 
         await client.query (`
@@ -400,6 +401,25 @@ async function getPostsByTagName( tagName ) {
     }
 }
 
+async function getAllTags() {
+
+    try {
+
+        const { rows } = await client.query(`
+
+            SELECT * from tags;
+
+        `)
+
+        return rows;
+
+    } catch( error ) {
+        
+        throw error;
+
+    }
+}
+
 
 
 
@@ -418,6 +438,7 @@ module.exports = {
     createPostTag,
     addTagsToPost,
     getPostById,
-    getPostsByTagName
+    getPostsByTagName,
+    getAllTags
 
 }
