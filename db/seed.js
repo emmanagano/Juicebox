@@ -11,7 +11,8 @@ const {
     getAllPosts,
     getPostById,
     getPostsByUser,
-    getPostsByTagName
+    getPostsByTagName,
+    getUserByUsername
 
 } = require('./index');
 
@@ -173,7 +174,6 @@ async function testDB() {
             const users = await getAllUsers();
 
         console.log("getAllUsers:", users);
-
         
 
         console.log("Calling updateUser on users[0]");
@@ -219,6 +219,11 @@ async function testDB() {
             const getUserPost = await getPostsByUser(1);
 
         console.log("getPostsByUser:",getUserPost);
+
+            const userByUsername = await getUserByUsername("albert");
+        console.log("getUserByUsername",userByUsername);
+
+        console.log("getUserByUsername",)
 
         
         console.log("Finished database tests!");
