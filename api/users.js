@@ -105,9 +105,7 @@ usersRouter.post('/register', async(req, res, next) => {
             username
 
         }, JWT_SECRET, {
-
             expiresIn:'1w'
-
         });
 
         res.send({
@@ -116,9 +114,9 @@ usersRouter.post('/register', async(req, res, next) => {
             token
         });
 
-    } catch({name, message}) {
+    } catch({message}) {
 
-        next({name, message});
+        next({message});
     }
 })
 

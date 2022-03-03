@@ -1,7 +1,7 @@
 
 
 const express = require('express');
-const { getAllTags } = require('../db');
+const { getAllTags, getPostsByTagName } = require('../db');
 const tagsRouter = express.Router();
 
 tagsRouter.use((req, res, next) => {
@@ -11,15 +11,35 @@ tagsRouter.use((req, res, next) => {
     next();
 });
 
-tagsRouter.get('/', async (req, res, next) => {
+tagsRouter.get('/:tagName/posts', async (req, res, next) => {
 
-    const tags = await getAllTags();
+    const {tagName} = req.params;
 
-    res.send({
+    try {
 
-        tags
-        
-    })
+        const postByTag = await getPostsByTagName(tagName);
+        const posts = postByTag.filter(post => {
+
+            if(post.active){
+                return true
+            }
+
+            if(req.user && post.author.id === req.user.id){
+                return true
+            }
+
+            return false
+        })
+        res.send({posts: postByTag});
+
+    } catch({name,message}) {
+
+        next({
+            name:"Get Tag Error",
+            message: "There was an error requesting for tags"
+        })
+    }
+    
 })
 
 module.exports = tagsRouter;
